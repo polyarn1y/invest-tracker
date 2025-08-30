@@ -1,33 +1,31 @@
-import { prisma } from "@/lib/prisma";
-import { SignUpInput, LoginInput } from "@/validators/auth.validator";
-import { User } from "@prisma/client";
-import bcrypt from "bcrypt";
+import JwtService from "@/services/jwt.service";
+import UserService from "./user.service";
+import { CreateUserDto } from "@/dtos/user/create-user.dto";
+import { SafeUserResponseDto } from "@/dtos/user/user-response.dto";
+import { LoginUserDto, LoginUserResponseDto } from "@/dtos/user/login-user.dto";
+import { TokensDto } from "@/dtos/jwt/tokens.dto";
 
-export const createUser = async (data: SignUpInput): Promise<User> => {
-  const { email, password } = data;
-
-  const existingUser = await prisma.user.findUnique({where: { email }})
-  if (existingUser) throw new Error("User with this email already exists");
-
-  const passwordHash = await bcrypt.hash(password, 10);
+export default class AuthService {
+  private userService: UserService;
+  private jwtService: JwtService;
   
-  return await prisma.user.create({
-    data: {
-      email,
-      passwordHash
-    }
-  })
+  constructor(userService?: UserService, jwtService?: JwtService) {
+    this.userService = userService || new UserService();
+    this.jwtService = jwtService || new JwtService();
+  }
+
+  public async createUser(data: CreateUserDto): Promise<SafeUserResponseDto> {
+    return await this.userService.create(data);
+  }
+
+  public async loginUser(data: LoginUserDto ): Promise<LoginUserResponseDto> {
+    const user = await this.userService.login(data);
+    const tokens = this.jwtService.generateTokens({ id: user.id, role: user.role })
+    return { user, ...tokens };
+  }
+
+  public async refreshToken(token: string): Promise<TokensDto> {
+    const payload = this.jwtService.verifyRefreshToken(token);
+    return this.jwtService.generateTokens({ id: payload.id, role: payload.role })
+  }
 }
-
-export const loginUser = async (data: LoginInput): Promise<User | null> => {
-  const { email, password } = data;
-  
-  const user = await prisma.user.findUnique({ where: { email }})
-  if (!user) throw new Error("Invalid Creditianls");
-
-  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-  if (!isPasswordValid) throw new Error("Invalid Creditianls");
-
-  return user;
-
-};

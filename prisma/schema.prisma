@@ -7,12 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum User_Role {
+  user
+  admin
+}
+
 model User {
-  id String @id @default(uuid())
-  email String @unique
+  id           String @id @default(uuid())
+  email        String @unique
   passwordHash String
+  role         String @default("user")
+  isVerified Boolean @default(false)
+  
+  portfolios Portfolio[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
   @@map("users")
 }
+
+enum Portfolio_Currency {
+  RUB
+  USD
+  EUR
+}
+
+model Portfolio {
+  id        String  @id @default(cuid())
+  name      String
+  currency  Portfolio_Currency
+  notes     String?
+  is_public Boolean @default(false)
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id])
+
+  @@map("portfolios")
+}
+
