@@ -9,7 +9,7 @@ export default class UserRepository {
   }
 
   async create(data: Prisma.UserCreateInput): Promise<SafeUserResponseDto> {
-    return await this.database.user.create({ data, select: { email: true, role: true, isVerified: true, created_at: true, updated_at: true }})
+    return await this.database.user.create({ data, select: { id: true, email: true, role: true, isVerified: true, created_at: true, updated_at: true }})
   }
 
   async getById(id: string) {
@@ -20,4 +20,14 @@ export default class UserRepository {
     return await this.database.user.findUnique({ where: { email }})
   }
 
+  async markVerified(id: string) {
+    return await this.database.user.update({
+      where: {
+        id
+      },
+      data: {
+        isVerified: true,
+      }
+    })
+  }
 }

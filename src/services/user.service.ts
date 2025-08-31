@@ -3,6 +3,7 @@ import UserRepository from "@/repository/user.repository";
 import { CreateUserDto } from "@/dtos/user/create-user.dto";
 import { LoginUserDto } from '@/dtos/user/login-user.dto';
 import { SafeUserResponseDto } from "@/dtos/user/user-response.dto";
+import ApiError from '@/utils/api-error';
 
 export default class UserService {
   private userRepository: UserRepository;
@@ -15,7 +16,7 @@ export default class UserService {
     const { email, password } = data;    
 
     const user = await this.userRepository.getByEmail(email);
-    if (user) throw new Error("This user already exists")
+    if (user) throw ApiError.conflict("User with this email already exists");
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -26,12 +27,16 @@ export default class UserService {
     const { email, password } = data;
 
     const user = await this.userRepository.getByEmail(email);
-    if (!user) throw new Error("Invalid credentials")
+    if (!user) throw ApiError.unauthorized("Invalid credentials");
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash!);
-    if (!isPasswordValid) throw new Error("Invalid credentials")
+    if (!isPasswordValid) throw ApiError.unauthorized("Invalid credentials");
     
     const { passwordHash, ...safeUser} = user;
     return safeUser;  
+  }
+
+  public async markVerified(id: string) {
+    await this.userRepository.markVerified(id);
   }
 }

@@ -69,4 +69,12 @@ export default class AuthController {
       message: "Logged out successfully"
     })
   };
+
+  public verifyUser = async (req: Request, res: Response) => {
+    const token = req.query?.token! as string;
+    await this.authService.verifyUser(token);
+    return res.status(200).json({
+      success: true,
+    })
+  }
 } 
